@@ -1,0 +1,51 @@
+version: '3.1'
+
+services:
+  something_service:
+    restart: always
+    build:
+      context: .
+      dockerfile: Dockerfile
+#    entrypoint: /bin/sh -c './server --createDatabase=true'
+#    ports:
+#      - "8080:8080"
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      SNOWFLAKE_START_TIME: 0
+      SNOWFLAKE_NODE_ID: 0
+    networks:
+      - something_network
+#    volumes:
+#      - ./conf:/conf/
+
+  db:
+    container_name: postgres_container
+    image: postgres:14.5
+    environment:
+      POSTGRES_USER: "user"
+      POSTGRES_PASSWORD: "qwerty"
+      PGDATA: "/var/lib/postgresql/data/pgdata"
+    volumes:
+      - ./pg_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U casdoor -d casdoor"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 4G
+    networks:
+      - something_network
+
+networks:
+  something_network:
+    driver: bridge
